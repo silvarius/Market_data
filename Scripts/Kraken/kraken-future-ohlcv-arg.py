@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Kraken (Spot ou Futures) → OHLC/OLHCV → CSV AmiBroker (pilotable par arguments CLI)
-- Futures: PF (linéaire) / PI (inverse), symbole unique (--symbol) ou tous (--all, défaut)
+Kraken Futures → OHLC/OLHCV → CSV AmiBroker (pilotable par arguments CLI)
+- PF (linéaire) / PI (inverse), symbole unique (--symbol) ou tous (--all, défaut)
 - Mode ALL: possibilité "concat" (un seul CSV multi-tickers) ou fichiers séparés
 - Reprise:
     * Par symbole: reprendre à partir d'un symbole (ordre alphabétique)
@@ -28,7 +28,6 @@ import urllib.request
 
 VERSION = "0-1-0"
 
-SPOT_API   = "https://api.kraken.com/0/public/OHLC"
 FUT_API    = "https://futures.kraken.com/api/charts/v1/trade"
 INSTR_API  = "https://futures.kraken.com/derivatives/api/v3/instruments"
 
@@ -236,79 +235,6 @@ def compute_symbol_resume_start(symbol: str, resolution: str,
                 pass
         return req_start_s
 
-# ============ Spot ============
-
-def validate_spot_pair(pair: str) -> bool:
-    try:
-        test_since = int(time.time()) - 3600
-        url = f"{SPOT_API}?{urlencode({'pair': pair, 'interval': 1, 'since': test_since})}"
-        data = http_get_json(url, max_retries=3)
-        return not data.get("error")
-    except Exception:
-        return False
-
-def run_spot(pair: str, interval_min: int, start_dt: datetime, end_dt: datetime, out_dir: Path):
-    start_s = to_unix_seconds(start_dt)
-    end_s   = to_unix_seconds(end_dt)
-
-    raw_f, csv_f, w, raw_path, csv_path, resume_from_sec = open_outputs_with_resume(
-        out_dir, "spot", pair, f"{interval_min}m", start_dt, end_dt
-    )
-    if resume_from_sec is not None:
-        start_s = max(start_s, resume_from_sec)
-
-    since = start_s
-    total_written = 0
-
-    print(f"\nTéléchargement SPOT {pair} @{interval_min}m")
-    print(f"CSV: {csv_path}")
-
-    try:
-        while True:
-            if since >= end_s:
-                break
-            params = {"pair": pair, "interval": interval_min, "since": since}
-            url = f"{SPOT_API}?{urlencode(params)}"
-            try:
-                data = http_get_json(url, max_retries=5)
-            except Exception as e:
-                print("Erreur spot:", e)
-                time.sleep(ERR_SLEEP); continue
-
-            raw_f.write(json.dumps(data, ensure_ascii=False) + "\n")
-
-            if data.get("error"):
-                print("Erreur API Kraken (spot):", data["error"])
-                time.sleep(ERR_SLEEP); continue
-
-            result = data.get("result", {})
-            next_since = int(result.get("last", since))
-
-            keys = [k for k in result.keys() if k != "last"]
-            if keys:
-                kpair = keys[0]
-                rows = result.get(kpair, [])
-                for r in rows:
-                    t = int(r[0])
-                    if t < start_s:
-                        continue
-                    if t >= end_s:
-                        next_since = end_s
-                        break
-                    d, tstr = ms_to_ab_date_time_from_sec(t)
-                    open_, high, low, close, vwap, volume, count = r[1:8]
-                    w.writerow([pair, d, tstr, open_, high, low, close, volume])
-                    total_written += 1
-
-            since = max(next_since, since + 60)
-            time.sleep(DEF_SLEEP)
-    finally:
-        raw_f.close()
-        csv_f.close()
-        delete_file(raw_path)
-
-    print(f"Terminé (spot). Bougies écrites: {total_written}")
-
 # ============ Futures (PF & PI) ============
 
 def fetch_instruments():
@@ -472,38 +398,29 @@ def run_futures_single(symbol: str, resolution: str, start_dt: datetime, end_dt:
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Kraken (Spot ou Futures) → OHLC/OHLCV → CSV AmiBroker (pilotable par arguments CLI)"
+        description="Kraken Futures → OHLC/OHLCV → CSV AmiBroker (pilotable par arguments CLI)"
     )
     parser.add_argument("--out-dir", default=".",
                          help="Dossier de sortie (défaut: répertoire courant)")
-    parser.add_argument("--market", choices=["spot", "futures"], default="futures",
-                         help="Marché: spot ou futures (défaut: futures)")
 
-    # Spot
-    parser.add_argument("--pair", default="XBTUSD",
-                         help="[spot] Paire spot (défaut: XBTUSD)")
-
-    # Futures
     parser.add_argument("--contract-type", choices=["PF", "PI"], default="PF",
-                         help="[futures] PF = linéaire (défaut), PI = inverse")
+                         help="PF = linéaire (défaut), PI = inverse")
     sym_group = parser.add_mutually_exclusive_group()
     sym_group.add_argument("--symbol", metavar="SYMBOL",
-                            help="[futures] Symbole unique (ex: PF_XBTUSD)")
+                            help="Symbole unique (ex: PF_XBTUSD)")
     sym_group.add_argument("--all", action="store_true",
-                            help="[futures] Tous les symboles de ce contract-type (défaut si --symbol absent)")
+                            help="Tous les symboles de ce contract-type (défaut si --symbol absent)")
     parser.add_argument("--resume-from", metavar="SYMBOL", default=None,
-                         help="[futures --all] Reprendre à partir de ce symbole, ordre alphabétique")
+                         help="[--all] Reprendre à partir de ce symbole, ordre alphabétique")
     concat_group = parser.add_mutually_exclusive_group()
     concat_group.add_argument("--concat", dest="concat", action="store_true",
-                               help="[futures --all] Un seul CSV multi-tickers (défaut)")
+                               help="[--all] Un seul CSV multi-tickers (défaut)")
     concat_group.add_argument("--no-concat", dest="concat", action="store_false",
-                               help="[futures --all] Fichiers CSV séparés par symbole")
+                               help="[--all] Fichiers CSV séparés par symbole")
     parser.set_defaults(concat=True)
 
-    # Commun (sémantique dépendante de --market)
     parser.add_argument("--interval", default=None,
-                         help="Intervalle: minutes en spot (ex: 1,5,15,60,1440 ; défaut 1), "
-                              "ou 1m/5m/15m/1h/1d en futures (défaut 1m)")
+                         help="Résolution 1m/5m/15m/1h/1d (défaut 1m)")
     parser.add_argument("--start", default=None,
                          help="Début UTC (défaut: hier 00:00:00 UTC)")
     parser.add_argument("--end", default=None,
@@ -514,15 +431,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
 # ============ MAIN ============
 
 def main():
-    print(f"=== Kraken OHLC → AmiBroker CSV (Spot ou Futures) (v{VERSION}) ===")
+    print(f"=== Kraken Futures OHLC → AmiBroker CSV (v{VERSION}) ===")
 
     parser = build_arg_parser()
     args = parser.parse_args()
 
     if args.resume_from and args.symbol:
         parser.error("--resume-from n'est utilisable qu'en mode --all (pas avec --symbol).")
-    if args.market == "spot" and (args.symbol or args.all or args.resume_from):
-        parser.error("--symbol/--all/--resume-from ne s'appliquent qu'au marché futures.")
 
     # Défauts UTC: hier 00:00 → aujourd'hui 00:00 (borne exclusive)
     today_utc = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -534,132 +449,101 @@ def main():
     out_dir = Path(args.out_dir)
     ensure_paths(out_dir)
 
-    if args.market == "spot":
-        # ----- SPOT -----
-        pair = (args.pair or "XBTUSD").strip().upper()
-        if not validate_spot_pair(pair):
-            print(f"Paire invalide pour l'endpoint OHLC spot: {pair} (ex: XBTUSD)."); return 1
+    ftype = args.contract_type
+    prefix = "PF_" if ftype != "PI" else "PI_"
 
-        interval_str = args.interval or "1"
-        try:
-            interval = int(interval_str)
-        except ValueError:
-            print("Interval invalide."); return 1
-
-        start_str = args.start or default_start_str
-        end_str   = args.end or default_end_str
-
-        try:
-            start_dt = parse_user_datetime(start_str)
-            end_dt   = parse_user_datetime(end_str)
-        except Exception as e:
-            print("Date invalide :", e); return 1
-        if end_dt <= start_dt:
-            print("Erreur : End doit être > Start."); return 1
-
-        try:
-            run_spot(pair, interval, start_dt, end_dt, out_dir)
-        except KeyboardInterrupt:
-            print("\nInterruption par l'utilisateur (spot)."); return 130
-        return 0
-
+    if args.symbol:
+        symbols_mode = "ONE"
+        symbol_list = [args.symbol.strip().upper()]
     else:
-        # ----- FUTURES -----
-        ftype = args.contract_type
-        prefix = "PF_" if ftype != "PI" else "PI_"
+        symbols_mode = "ALL"
+        symbol_list = []
 
-        if args.symbol:
-            symbols_mode = "ONE"
-            symbol_list = [args.symbol.strip().upper()]
-        else:
-            symbols_mode = "ALL"
-            symbol_list = []
+    resolution = args.interval or "1m"
+    start_str  = args.start or default_start_str
+    end_str    = args.end or default_end_str
 
-        resolution = args.interval or "1m"
-        start_str  = args.start or default_start_str
-        end_str    = args.end or default_end_str
+    try:
+        start_dt = parse_user_datetime(start_str)
+        end_dt   = parse_user_datetime(end_str)
+    except Exception as e:
+        print("Date invalide :", e); return 1
+    if end_dt <= start_dt:
+        print("Erreur : End doit être > Start."); return 1
 
+    concat_mode = False
+    concat_f = concat_writer = concat_csv_path = None
+
+    if symbols_mode == "ALL":
         try:
-            start_dt = parse_user_datetime(start_str)
-            end_dt   = parse_user_datetime(end_str)
-        except Exception as e:
-            print("Date invalide :", e); return 1
-        if end_dt <= start_dt:
-            print("Erreur : End doit être > Start."); return 1
-
-        concat_mode = False
-        concat_f = concat_writer = concat_csv_path = None
-
-        if symbols_mode == "ALL":
-            try:
-                instruments = fetch_instruments()
-                full_list = list_symbols_by_prefix(instruments, prefix)
-                if not full_list:
-                    print(f"Aucun symbole trouvé pour {prefix}."); return 1
-                print(f"{len(full_list)} symboles trouvés pour {prefix} (ordre alphabétique).")
-                resume_from_sym = (args.resume_from or "").strip().upper()
-                if resume_from_sym:
-                    if resume_from_sym in full_list:
-                        start_idx = full_list.index(resume_from_sym)
-                        symbol_list = full_list[start_idx:]
-                    else:
-                        print(f"{resume_from_sym} introuvable, on démarre au début.")
-                        symbol_list = full_list
+            instruments = fetch_instruments()
+            full_list = list_symbols_by_prefix(instruments, prefix)
+            if not full_list:
+                print(f"Aucun symbole trouvé pour {prefix}."); return 1
+            print(f"{len(full_list)} symboles trouvés pour {prefix} (ordre alphabétique).")
+            resume_from_sym = (args.resume_from or "").strip().upper()
+            if resume_from_sym:
+                if resume_from_sym in full_list:
+                    start_idx = full_list.index(resume_from_sym)
+                    symbol_list = full_list[start_idx:]
                 else:
+                    print(f"{resume_from_sym} introuvable, on démarre au début.")
                     symbol_list = full_list
-                # Mode concat
-                if args.concat:
-                    concat_mode = True
-                    concat_f, concat_writer, concat_csv_path = make_concat_csv(out_dir, "futures", resolution, start_dt, end_dt)
-            except KeyboardInterrupt:
-                print("\nInterruption par l'utilisateur (listing)."); return 130
-            except Exception as e:
-                print("Erreur instruments :", e); return 1
-        else:
-            try:
-                instruments = fetch_instruments()
-            except Exception:
-                instruments = []
-            if symbol_list:
-                ctype = classify_futures_symbol(symbol_list[0], instruments)
-                attendu = "linear" if prefix == "PF_" else "inverse"
-                if ctype not in ("unknown", attendu):
-                    print(f"Attention: {symbol_list[0]} détecté '{ctype}' (attendu: {attendu}).")
-
-        # ======= Progression globale: calcul du total à parcourir (en secondes) =======
-        end_s = to_unix_seconds(end_dt)
-        total_seconds = 0
-        for sym in symbol_list:
-            eff_start_s = compute_symbol_resume_start(sym, validate_resolution(resolution),
-                                                      start_dt, end_dt, out_dir, concat_mode, concat_csv_path)
-            total_seconds += max(0, end_s - eff_start_s)
-        gprog = GlobalProgress(total_seconds, prefix="Progression globale")
-
-        # ======= Téléchargements =======
-        try:
-            if concat_mode:
-                try:
-                    for i, sym in enumerate(symbol_list, 1):
-                        print(f"\n[{i}/{len(symbol_list)}] {sym}")
-                        run_futures_single(sym, resolution, start_dt, end_dt, out_dir,
-                                           concat_mode=True, concat_writer=concat_writer, concat_csv_path=concat_csv_path,
-                                           gprogress=gprog)
-                        time.sleep(0.4)
-                finally:
-                    if concat_f:
-                        concat_f.close()
             else:
+                symbol_list = full_list
+            # Mode concat
+            if args.concat:
+                concat_mode = True
+                concat_f, concat_writer, concat_csv_path = make_concat_csv(out_dir, "futures", resolution, start_dt, end_dt)
+        except KeyboardInterrupt:
+            print("\nInterruption par l'utilisateur (listing)."); return 130
+        except Exception as e:
+            print("Erreur instruments :", e); return 1
+    else:
+        try:
+            instruments = fetch_instruments()
+        except Exception:
+            instruments = []
+        if symbol_list:
+            ctype = classify_futures_symbol(symbol_list[0], instruments)
+            attendu = "linear" if prefix == "PF_" else "inverse"
+            if ctype not in ("unknown", attendu):
+                print(f"Attention: {symbol_list[0]} détecté '{ctype}' (attendu: {attendu}).")
+
+    # ======= Progression globale: calcul du total à parcourir (en secondes) =======
+    end_s = to_unix_seconds(end_dt)
+    total_seconds = 0
+    for sym in symbol_list:
+        eff_start_s = compute_symbol_resume_start(sym, validate_resolution(resolution),
+                                                  start_dt, end_dt, out_dir, concat_mode, concat_csv_path)
+        total_seconds += max(0, end_s - eff_start_s)
+    gprog = GlobalProgress(total_seconds, prefix="Progression globale")
+
+    # ======= Téléchargements =======
+    try:
+        if concat_mode:
+            try:
                 for i, sym in enumerate(symbol_list, 1):
                     print(f"\n[{i}/{len(symbol_list)}] {sym}")
                     run_futures_single(sym, resolution, start_dt, end_dt, out_dir,
-                                       concat_mode=False, gprogress=gprog)
+                                       concat_mode=True, concat_writer=concat_writer, concat_csv_path=concat_csv_path,
+                                       gprogress=gprog)
                     time.sleep(0.4)
-        except KeyboardInterrupt:
-            print("\nInterruption par l'utilisateur (futures)."); return 130
+            finally:
+                if concat_f:
+                    concat_f.close()
+        else:
+            for i, sym in enumerate(symbol_list, 1):
+                print(f"\n[{i}/{len(symbol_list)}] {sym}")
+                run_futures_single(sym, resolution, start_dt, end_dt, out_dir,
+                                   concat_mode=False, gprogress=gprog)
+                time.sleep(0.4)
+    except KeyboardInterrupt:
+        print("\nInterruption par l'utilisateur (futures)."); return 130
 
-        gprog.done()
-        print("\nTerminé.")
-        return 0
+    gprog.done()
+    print("\nTerminé.")
+    return 0
 
 if __name__ == "__main__":
     sys.exit(main())

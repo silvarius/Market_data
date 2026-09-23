@@ -2,6 +2,12 @@
 
 ## 2026-09-23
 
+Retrait de la partie Spot : le script ne gère plus que les Futures (PF
+linéaire / PI inverse). La partie Spot devient un script dédié,
+`kraken-spot-ohlcv-ihm.py`.
+
+## 2026-09-23
+
 Version initiale (0-1-0).
 
 - Téléchargement OHLC Kraken vers CSV AmiBroker, Spot ou Futures (PF linéaire / PI inverse)
