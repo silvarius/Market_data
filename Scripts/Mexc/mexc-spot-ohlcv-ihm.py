@@ -30,6 +30,8 @@ from datetime import datetime, timezone, timedelta
 from urllib.parse import urlencode
 import urllib.request
 
+VERSION = "0-1-0"
+
 BASE_URL   = "https://api.mexc.com"
 KLINE_API  = f"{BASE_URL}/api/v3/klines"
 TICKER_API = f"{BASE_URL}/api/v3/ticker/24hr"
@@ -505,7 +507,7 @@ def run_spot_single(symbol: str, mexc_interval: str, interval_sec: int,
 # ============ MAIN ============
 
 def main():
-    print("=== MEXC Spot → AmiBroker CSV ===\n")
+    print(f"=== MEXC Spot → AmiBroker CSV (v{VERSION}) ===\n")
 
     # --- Dossier de sortie ---
     out_dir_str = input("Dossier de sortie (ENTER = courant) : ").strip() or "."

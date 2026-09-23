@@ -25,6 +25,8 @@ from datetime import datetime, timezone, timedelta
 from urllib.parse import urlencode
 import urllib.request
 
+VERSION = "0-1-0"
+
 SPOT_API   = "https://api.kraken.com/0/public/OHLC"
 FUT_API    = "https://futures.kraken.com/api/charts/v1/trade"
 TICK_API   = "https://futures.kraken.com/derivatives/api/v3/tickers"
@@ -77,7 +79,6 @@ def delete_file(path: Path):
     try:
         if path.exists():
             os.remove(path)
-            # deletion log disabled
     except Exception as e:
         print(f"Impossible de supprimer {path}: {e}")
 
@@ -128,8 +129,6 @@ class SymbolProgress:
         self.total  = max(0, int(total_steps))
         self.cur    = 0
         self.prefix = prefix
-        # 1er rendu (0%)
-        # initial render disabled
 
     def update_to(self, current_steps: int):
         self.cur = max(0, min(int(current_steps), self.total))
@@ -168,7 +167,6 @@ def open_outputs_with_resume(out_dir: Path, market_tag: str, ticker: str, frame_
     if new_csv:
         w.writerow(["Ticker","Date","Time","Open","High","Low","Close","Volume"])
     else:
-        # on cherche la dernière ligne pour reprendre
         try:
             last_line = None
             with csv_path.open("r", newline="", encoding="utf-8") as fchk:
@@ -230,7 +228,6 @@ def compute_symbol_resume_start(symbol: str, resolution: str,
         last_sec = find_last_timestamp_in_concat(concat_csv_path, symbol) if concat_csv_path else None
         return max(req_start_s, (last_sec + 60) if last_sec is not None else req_start_s)
     else:
-        # lire le CSV par symbole si existe
         _, csv_path = csv_paths(out_dir, "futures", symbol, resolution, start_dt, end_dt)
         if csv_path.exists():
             try:
@@ -305,7 +302,7 @@ def run_spot(pair: str, interval_min: int, start_dt: datetime, end_dt: datetime,
                 rows = result.get(kpair, [])
                 for r in rows:
                     t = int(r[0])
-                    if t < start_s:  # skip doublon
+                    if t < start_s:
                         continue
                     if t >= end_s:
                         next_since = end_s
@@ -320,7 +317,7 @@ def run_spot(pair: str, interval_min: int, start_dt: datetime, end_dt: datetime,
     finally:
         raw_f.close()
         csv_f.close()
-        delete_file(raw_path)  # suppression JSONL spot
+        delete_file(raw_path)
 
     print(f"Terminé (spot). Bougies écrites: {total_written}")
 
@@ -519,7 +516,7 @@ def run_futures_single(symbol: str, resolution: str, start_dt: datetime, end_dt:
             gprogress.bump(progressed)
             sys.stdout.write("\n")
             sys.stdout.flush()
-        delete_file(raw_path)  # suppression JSONL après chaque symbole
+        delete_file(raw_path)
 
     print(f"Terminé ({symbol}). Bougies écrites: {total_candles}")
     return total_candles
@@ -527,7 +524,7 @@ def run_futures_single(symbol: str, resolution: str, start_dt: datetime, end_dt:
 # ============ MAIN ============
 
 def main():
-    print("=== Kraken OHLC → AmiBroker CSV (Spot ou Futures) ===")
+    print(f"=== Kraken OHLC → AmiBroker CSV (Spot ou Futures) (v{VERSION}) ===")
     print("Marché ?  1 = Spot   |  2 = Futures (ENTER = Futures)")
     m = input("Votre choix : ").strip()
     market = 2 if (m == "" or m not in ("1","2")) else int(m)

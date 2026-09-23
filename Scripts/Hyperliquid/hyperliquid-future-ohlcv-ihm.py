@@ -30,6 +30,8 @@ from pathlib import Path
 from datetime import datetime, timezone, timedelta
 import urllib.request
 
+VERSION = "0-1-0"
+
 HL_API     = "https://api.hyperliquid.xyz/info"
 DEF_SLEEP  = 0.25   # délai standard entre appels (suffisant pour budget 1200 wu/min)
 ERR_SLEEP  = 2.00   # délai en cas d'erreur transitoire
@@ -490,7 +492,7 @@ def run_hl_single(symbol: str, interval: str, interval_ms: int,
 # ============ MAIN ============
 
 def main():
-    print("=== Hyperliquid Perps → AmiBroker CSV ===\n")
+    print(f"=== Hyperliquid Perps → AmiBroker CSV (v{VERSION}) ===\n")
 
     # --- Dossier de sortie ---
     out_dir_str = input("Dossier de sortie (ENTER = courant) : ").strip() or "."
