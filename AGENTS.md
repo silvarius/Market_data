@@ -1,0 +1,1 @@
+../Regles_agents/AGENTS.md
