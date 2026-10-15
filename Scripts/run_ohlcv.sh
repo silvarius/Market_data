@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -u
 
+VERSION="0-1-0"
+
 DIR="/home/ubuntu/Donnees_import"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="$DIR/logs"
@@ -20,7 +22,7 @@ SCRIPTS=(
 overall_status=0
 
 {
-  echo "Rapport d'import du ${DATE_ONLY}"
+  echo "Rapport d'import du ${DATE_ONLY} (run_ohlcv.sh v${VERSION})"
   echo "================================"
 } > "$REPORT_FILE"
 

@@ -1,5 +1,9 @@
 # Changelog — hyperliquid-future-ohlcv-arg.py
 
+## 2026-10-15
+
+Renommage du fichier concat : `hyperliquid_futures_1m_[dates].csv` au lieu de `HL_ALL_1m_[dates].csv`. Les fichiers par symbole gardent le préfixe `HL_`.
+
 ## 2026-09-23
 
 Version initiale (0-1-0). Variante pilotable par arguments CLI du script interactif `hyperliquid-future-ohlcv-ihm.py` (mêmes endpoints, même logique de téléchargement/reprise/CSV), pour permettre le lancement par un script d'automatisation sans interaction.

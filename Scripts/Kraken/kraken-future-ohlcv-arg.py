@@ -282,7 +282,7 @@ def validate_resolution(res: str) -> str:
 def make_concat_handle_if_needed(out_dir, resolution, start_dt, end_dt, enable_concat):
     if not enable_concat:
         return None, None, None
-    concat_f, concat_writer, concat_csv_path = make_concat_csv(out_dir, "futures", resolution, start_dt, end_dt)
+    concat_f, concat_writer, concat_csv_path = make_concat_csv(out_dir, "Kraken_futures", resolution, start_dt, end_dt)
     return concat_f, concat_writer, concat_csv_path
 
 def run_futures_single(symbol: str, resolution: str, start_dt: datetime, end_dt: datetime,
@@ -494,7 +494,7 @@ def main():
             # Mode concat
             if args.concat:
                 concat_mode = True
-                concat_f, concat_writer, concat_csv_path = make_concat_csv(out_dir, "futures", resolution, start_dt, end_dt)
+                concat_f, concat_writer, concat_csv_path = make_concat_csv(out_dir, "Kraken_futures", resolution, start_dt, end_dt)
         except KeyboardInterrupt:
             print("\nInterruption par l'utilisateur (listing)."); return 130
         except Exception as e:

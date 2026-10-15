@@ -263,7 +263,7 @@ def open_outputs_with_resume(out_dir: Path, market_tag: str, ticker: str,
 def make_concat_csv(out_dir: Path, market_tag: str, frame_tag: str,
                     start_dt: datetime, end_dt: datetime):
     stem = (
-        f"{market_tag}_ALL_{frame_tag}_"
+        f"{market_tag}_{frame_tag}_"
         f"{start_dt.isoformat().replace(':', '-')}_to_"
         f"{end_dt.isoformat().replace(':', '-')}"
     )
@@ -557,7 +557,7 @@ def main():
             if args.concat:
                 concat_mode = True
                 concat_f, concat_writer, concat_csv_path = make_concat_csv(
-                    out_dir, "HL", interval, start_dt, end_dt
+                    out_dir, "hyperliquid_futures", interval, start_dt, end_dt
                 )
 
         except KeyboardInterrupt:

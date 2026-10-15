@@ -1,5 +1,9 @@
 # Changelog — kraken-future-ohlcv-arg.py
 
+## 2026-10-15
+
+Renommage du fichier concat : `Kraken_futures_ALL_1m_[dates].csv` au lieu de `futures_ALL_1m_[dates].csv`. Les fichiers par symbole gardent le préfixe `futures_`.
+
 ## 2026-09-23
 
 Retrait de la partie Spot (`--market`, `--pair`) : le script ne gère
