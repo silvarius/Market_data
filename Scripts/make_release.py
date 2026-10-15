@@ -17,7 +17,7 @@ import sys
 import zipfile
 from pathlib import Path
 
-RELEASE_VERSION = "0-1-0"
+RELEASE_VERSION = "0-1-1"
 ROOT_DIR = "Donnees_import"
 SCRIPTS_DIR = Path(__file__).resolve().parent
 
@@ -30,7 +30,11 @@ COMPONENTS = [
     "Mexc/mexc-spot-ohlcv-arg.py",
 ]
 
-VERSION_RE = re.compile(r'^\s*VERSION\s*=\s*"([^"]+)"', re.MULTILINE)
+# Skills pour l'agent Claude du serveur : source dans Scripts/skills/<nom>/SKILL.md,
+# livrées dans Donnees_import/.claude/skills/<nom>/SKILL.md.
+SERVER_SKILLS = ["ohlcv-runner-ops"]
+
+VERSION_RE =re.compile(r'^\s*VERSION\s*=\s*"([^"]+)"', re.MULTILINE)
 FIXED_DATE = (2026, 1, 1, 0, 0, 0)  # zip reproductible
 
 
@@ -69,6 +73,13 @@ def main():
         changelog = src.with_name(src.name + ".changelog.md")
         if changelog.is_file():
             files.append((changelog.relative_to(SCRIPTS_DIR).as_posix(), changelog))
+
+    for name in SERVER_SKILLS:
+        src = SCRIPTS_DIR / "skills" / name / "SKILL.md"
+        if not src.is_file():
+            sys.exit(f"Skill manquante : {src}")
+        manifest.append(f"skill {name}")
+        files.append((f".claude/skills/{name}/SKILL.md", src))
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     out = args.out_dir / f"ohlcv-runner-{RELEASE_VERSION}.zip"

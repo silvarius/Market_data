@@ -31,12 +31,23 @@ puis construire. Le zip ne contient que `run_ohlcv.sh`, les trois scripts
 ## Déployer sur le serveur (Linux, utilisateur `ubuntu`)
 
 Le zip contient un dossier `Donnees_import/` : il se place et se dézippe à la
-racine de `~/`.
+racine de `~/`. Pour l'instant, l'utilisateur dépose le zip depuis son poste
+avec FileZilla (SFTP) dans `~/` ; l'agent Claude du serveur le déploie ensuite
+avec la skill `ohlcv-runner-ops` (livrée dans le zip, source
+`Scripts/skills/ohlcv-runner-ops/SKILL.md`). Les étapes ci-dessous valent
+pour un déploiement manuel.
 
 ```
 cd ~
 unzip -o ohlcv-runner-<version>.zip
 cat Donnees_import/MANIFEST.txt
+```
+
+Une fois le `MANIFEST.txt` vérifié, supprimer le zip du serveur (il est
+reconstructible et reste disponible sur la release GitHub) :
+
+```
+rm ~/ohlcv-runner-<version>.zip
 ```
 
 - Un dézip par-dessus un déploiement existant est sans risque pour les
