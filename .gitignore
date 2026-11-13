@@ -3,3 +3,4 @@ Scripts/Mexc/Archive/
 Temp/
 __pycache__/
 dist/
+.~lock.*#
