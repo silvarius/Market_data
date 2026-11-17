@@ -10,7 +10,7 @@ Object Storage **public en lecture** `resodia-ohlcv` (région `eu-west-par`,
 endpoint `https://s3.eu-west-par.io.cloud.ovh.net`, URL virtual-host
 `https://resodia-ohlcv.s3.eu-west-par.io.cloud.ovh.net/`). Les fichiers
 doivent être dans `Market_data/Base_data/` pour que les scripts de backtest
-(projet gunmaster : `Trading/Modeles/Gunmaster/Backtest/`) les trouvent.
+(projet gunmaster : `Trading/Master/Gunmaster/Backtest/`) les trouvent.
 
 ## Télécharger
 
@@ -27,7 +27,7 @@ ni dépendance externe. Détail : `S3_ovh_ohlcv/fetch_data.py.changelog.md`.
 
 - Cloner **les deux dépôts** : `Market_data` et `Gunmaster`. Les scripts de
   backtest cherchent les données en `<Gunmaster>/../../Market_data/Base_data/`
-  (arborescence `Trading/Modeles/Gunmaster` + `Trading/Market_data`). Si
+  (arborescence `Trading/Master/Gunmaster` + `Trading/Market_data`). Si
   l'arborescence cloud diffère, passer `--dest` et surcharger le chemin de
   données côté script de backtest (argument dédié selon le script).
 - Le réseau sortant de l'environnement doit autoriser
