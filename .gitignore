@@ -4,3 +4,10 @@ Temp/
 __pycache__/
 dist/
 .~lock.*#
+# Données de marché (hors git) : un dossier par marché ; CME est un dépôt à part (donnees-trading)
+CME/
+Kraken/
+Hyperliquid/
+Mexc/
+Amibroker/
+Cache/

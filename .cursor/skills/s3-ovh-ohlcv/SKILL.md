@@ -12,6 +12,10 @@ endpoint `https://s3.eu-west-par.io.cloud.ovh.net`, URL virtual-host
 doivent être dans `Market_data/Base_data/` pour que les scripts de backtest
 (projet gunmaster : `Trading/Master/Gunmaster/Backtest/`) les trouvent.
 
+Ce dossier `Base_data/` ne sert que sur les postes distants (cloud, VPS) : sur le poste
+Tower4, les données vivent dans `~/Tower4/Market_data/<marché>/` (Kraken, Hyperliquid,
+Mexc, CME) et les moteurs les lisent via `TRADING_DATA_DIR`.
+
 ## Télécharger
 
 ```
